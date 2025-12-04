@@ -15,9 +15,9 @@ public class WebConfig implements WebMvcConfigurer {
         Path uploadDir = Paths.get("uploads").toAbsolutePath().normalize();
 
         System.out.println("=== WEB CONFIG DEBUG ===");
-        System.out.println("🌐 Current working directory: " + System.getProperty("user.dir"));
-        System.out.println("🌐 Upload directory path: " + uploadDir.toString());
-        System.out.println("🌐 Directory exists: " + java.nio.file.Files.exists(uploadDir));
+        System.out.println("Current working directory: " + System.getProperty("user.dir"));
+        System.out.println("Upload directory path: " + uploadDir.toString());
+        System.out.println("Directory exists: " + java.nio.file.Files.exists(uploadDir));
         System.out.println("=== END DEBUG ===");
 
         registry.addResourceHandler("/uploads/**")
