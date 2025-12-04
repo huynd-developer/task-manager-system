@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông tin tài khoản</title>
+</head>
+<body>
+
+<div th:switch="${@auth.getAuthentication().authenticated}">
+    <ul th:case="true">
+        <li>
+            UserName: <b th:text="${@auth.getUsername()}"></b>
+        </li>
+        <li>
+            Role: <b th:each="role : ${@auth.roles}" th:text="${role}"></b>
+        </li>
+        <li>
+            <a href="#">Sign-Out</a>
+        </li>
+        <li th:if="${@auth.hasAnyRole('ADMIN')}">
+            <a href="#">Goto Administration</a>
+        </li>
+    </ul>
+
+    <ul th:case="false">
+        <li>Bạn chưa đăng nhập</li>
+    </ul>
+</div>
+
+</body>
+</html>

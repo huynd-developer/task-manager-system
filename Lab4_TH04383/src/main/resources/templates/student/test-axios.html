@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý sinh viên</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+
+<h2>Quản lý sinh viên (Firebase + Axios)</h2>
+
+<button onclick="getStudent()">Danh sách sinh viên</button>
+<button onclick="postStudent()">Thêm sinh viên</button>
+<button onclick="putStudent()">Cập nhật sinh viên</button>
+<button onclick="deleteStudent()">Xóa sinh viên (Theo key)</button>
+
+<ul id="listStudent"></ul>
+
+<script>
+    const FIREBASE_URL = "https://sof306201-d6872-default-rtdb.asia-southeast1.firebasedatabase.app/students";
+
+    // ================================
+    // 1. Hiển thị danh sách sinh viên
+    // ================================
+    function getStudent() {
+        axios.get(`${FIREBASE_URL}.json`)
+            .then(function (response) {
+                const data = response.data;
+                const listElement = document.getElementById("listStudent");
+
+                listElement.innerHTML = ""; // Xóa danh sách cũ
+
+                if (!data) {
+                    listElement.innerHTML = "<li>Không có sinh viên nào</li>";
+                    alert("Không có sinh viên nào trong cơ sở dữ liệu");
+                    return;
+                }
+
+                Object.keys(data).forEach(function (key) {
+                    const student = data[key];
+                    const item = document.createElement("li");
+
+                    item.textContent =
+                        `Key: ${key}, Mã: ${student.id}, Tên: ${student.name},
+                        Điểm: ${student.mark}, Giới tính: ${student.gender ? 'Nam' : 'Nữ'}`;
+
+                    listElement.appendChild(item);
+                });
+
+                alert("Đã tải danh sách sinh viên thành công!");
+            })
+            .catch(function (error) {
+                console.error("Lỗi đọc danh sách sinh viên!", error);
+                alert("Lỗi khi tải danh sách sinh viên: " + error.message);
+            });
+    }
+
+    // ================================
+    // 2. Thêm sinh viên (POST)
+    // ================================
+    function postStudent(){
+        const student = {
+            id : "SV06",
+            name : "Sinh viên 06",
+            mark : "9.5",
+            gender : true
+        }
+        axios.post(`${FIREBASE_URL}.json`, student)
+            .then(function (response){
+                console.log("Thêm sinh viên thành công", response.data);
+                alert("Thêm sinh viên thành công!");
+                getStudent();
+            })
+            .catch(function (error){
+                console.error("Lỗi: ", error);
+                alert("Lỗi khi thêm sinh viên: " + error.message);
+            });
+    }
+
+    // ================================
+    // 3. Sửa sinh viên (PUT)
+    // ================================
+    function putStudent(){
+        const key = "-OeG2BTSbr_cL6JV2tQW";
+        const updateSinhVien = {
+            gender: false,
+            id: "SV01",
+            mark: 9.5,
+            name: "Sinh viên 01"
+        };
+
+        axios.put(`${FIREBASE_URL}/${key}.json`, updateSinhVien)
+            .then(function (response){
+                console.log("Sửa sinh viên thành công", response.data);
+                alert("Cập nhật sinh viên thành công!");
+                getStudent();
+            })
+            .catch(function (error){
+                console.error("Lỗi: ", error);
+                alert("Lỗi khi cập nhật sinh viên: " + error.message);
+            });
+    }
+
+    // ================================
+    // 4. Xóa sinh viên (DELETE)
+    // ================================
+    function deleteStudent(){
+        const key = "-OeG2BTSbr_cL6JV2tQW";
+
+        axios.delete(`${FIREBASE_URL}/${key}.json`)
+            .then(function (response){
+                console.log("Xóa sinh viên thành công", response.data);
+                alert("Xóa sinh viên thành công!");
+                getStudent();
+            })
+            .catch(function (error){
+                console.error("Lỗi: ", error);
+                alert("Lỗi khi xóa sinh viên: " + error.message);
+            });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>Giỏ hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+
+        .cart-item {
+            transition: all 0.3s;
+        }
+
+        .cart-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .checkout-form {
+            display: none;
+        }
+    </style>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<div id="vue-cart-app" class="container main-content mt-5 pt-4">
+</div>
+
+<form id="checkout-form" class="checkout-form" method="POST" action="/orders/create">
+    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+    <input type="hidden" name="shippingAddress" id="checkout-address">
+</form>
+
+<footer class="bg-dark text-light mt-5 py-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>🛍️ SHOP APP</h5>
+                <p>Ứng dụng mua sắm trực tuyến</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p>&copy; 2025 Shop App. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    const {createApp} = Vue;
+
+    const CartApp = {
+        template: `
+          <div class="container mt-4">
+            <div v-if="loading" class="loading-overlay">
+              <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Đang tải giỏ hàng...</p>
+              </div>
+            </div>
+
+            <div v-else-if="cartItems.length === 0" class="text-center py-5">
+              <div class="empty-cart-icon mb-3">
+                <i class="fas fa-shopping-cart fa-4x text-muted"></i>
+              </div>
+              <h3 class="text-muted">Giỏ hàng trống</h3>
+              <p class="text-muted mb-4">Hãy thêm sản phẩm vào giỏ hàng!</p>
+              <a href="/" class="btn btn-primary btn-lg">
+                <i class="fas fa-shopping-bag me-2"></i> Tiếp tục mua sắm
+              </a>
+            </div>
+
+            <div v-else>
+              <h1 class="mb-4"><i class="fas fa-shopping-cart me-2"></i> Giỏ hàng của bạn</h1>
+
+              <div v-if="successMessage" class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle me-2"></i> {{ successMessage }}
+                <button type="button" class="btn-close" @click="successMessage = ''"></button>
+              </div>
+
+              <div v-if="errorMessage" class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle me-2"></i> {{ errorMessage }}
+                <button type="button" class="btn-close" @click="errorMessage = ''"></button>
+              </div>
+
+              <div class="row">
+                <div class="col-lg-8">
+                  <div v-for="item in cartItems" :key="item.id" class="card cart-item mb-3">
+                    <div class="card-body">
+                      <div class="row align-items-center">
+                        <div class="col-md-2">
+                          <img :src="getProductImage(item.product)"
+                               :alt="item.product.name"
+                               class="img-fluid rounded"
+                               style="height: 80px; width: 80px; object-fit: cover;">
+                        </div>
+
+                        <div class="col-md-5">
+                          <h5 class="card-title">{{ item.product.name }}</h5>
+                          <p class="text-muted small mb-1" v-if="item.product.description">
+                            {{ truncateDescription(item.product.description) }}
+                          </p>
+                          <p class="text-danger fw-bold mb-0">
+                            {{ formatPrice(item.product.price) }}
+                          </p>
+                        </div>
+
+                        <div class="col-md-3">
+                          <div class="quantity-controls">
+                            <button @click="updateQuantity(item.product.id, item.quantity - 1)"
+                                    :disabled="item.quantity <= 1 || updatingItemId === item.product.id"
+                                    class="quantity-btn">
+                              <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="fw-bold mx-2">{{ item.quantity }}</span>
+                            <button @click="updateQuantity(item.product.id, item.quantity + 1)"
+                                    :disabled="item.quantity >= item.product.stockQuantity || updatingItemId === item.product.id"
+                                    class="quantity-btn">
+                              <i class="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <small class="text-muted d-block mt-1">
+                            <i class="fas fa-box me-1"></i> Còn {{ item.product.stockQuantity }} sản phẩm
+                          </small>
+                        </div>
+
+                        <div class="col-md-2 text-end">
+                          <p class="fw-bold text-primary mb-2">
+                            {{ formatPrice(item.product.price * item.quantity) }}
+                          </p>
+                          <button @click="removeItem(item.product.id)"
+                                  :disabled="removingItemId === item.product.id"
+                                  class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i>
+                            <span v-if="removingItemId === item.product.id">
+                              <span class="spinner-border spinner-border-sm" role="status"></span>
+                            </span>
+                            <span v-else>Xóa</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-4">
+                  <div class="card sticky-top" style="top: 100px;">
+                    <div class="card-header bg-primary text-white">
+                      <h5 class="mb-0"><i class="fas fa-receipt me-2"></i> Tổng đơn hàng</h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between mb-2">
+                        <span>Tạm tính:</span>
+                        <span>{{ formatPrice(subtotal) }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between mb-2">
+                        <span>Phí vận chuyển:</span>
+                        <span class="text-success"><i class="fas fa-truck me-1"></i> Miễn phí</span>
+                      </div>
+                      <hr>
+                      <div class="d-flex justify-content-between mb-3">
+                        <strong>Tổng cộng:</strong>
+                        <strong class="text-danger fs-5">{{ formatPrice(subtotal) }}</strong>
+                      </div>
+
+                      <div class="mb-4">
+                        <label class="form-label fw-bold">
+                          <i class="fas fa-map-marker-alt me-2"></i> Địa chỉ giao hàng:
+                        </label>
+                        <textarea v-model="shippingAddress"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Nhập địa chỉ giao hàng đầy đủ..."
+                                  :class="{'is-invalid': addressError}"
+                                  :disabled="processing">
+                        </textarea>
+                        <div v-if="addressError" class="invalid-feedback">
+                          {{ addressError }}
+                        </div>
+                      </div>
+
+                      <button @click="checkout"
+                              :disabled="!shippingAddress.trim() || processing"
+                              class="btn btn-success btn-lg w-100 py-3">
+                        <span v-if="processing">
+                          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                          Đang xử lý...
+                        </span>
+                        <span v-else>
+                          <i class="fas fa-rocket me-2"></i> Đặt hàng ngay
+                        </span>
+                      </button>
+
+                      <div class="text-center mt-3">
+                        <a href="/" class="btn btn-outline-primary w-100">
+                          <i class="fas fa-arrow-left me-2"></i> Tiếp tục mua sắm
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-4">
+                <div class="col-12">
+                  <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <i class="fas fa-info-circle me-2"></i>
+                        Tổng <strong>{{ cartItems.length }}</strong> sản phẩm •
+                        <strong>{{ totalQuantity }}</strong> mặt hàng
+                      </div>
+                      <div>
+                        <button @click="clearCart"
+                                :disabled="clearingCart"
+                                class="btn btn-outline-danger btn-sm">
+                          <i class="fas fa-trash me-1"></i>
+                          <span v-if="clearingCart">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                          </span>
+                          <span v-else>Xóa tất cả</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+
+        data() {
+            return {
+                cartItems: [],
+                shippingAddress: '',
+                loading: true,
+                processing: false,
+                clearingCart: false,
+                updatingItemId: null,
+                removingItemId: null,
+                addressError: '',
+                errorMessage: '',
+                successMessage: ''
+            };
+        },
+
+        computed: {
+            subtotal() {
+                return this.cartItems.reduce((total, item) => {
+                    return total + (item.product.price * item.quantity);
+                }, 0);
+            },
+            totalQuantity() {
+                return this.cartItems.reduce((total, item) => total + item.quantity, 0);
+            }
+        },
+
+        mounted() {
+            console.log('Cart Vue component mounted');
+            this.loadCart();
+        },
+
+        methods: {
+            getCsrfToken() {
+                const metaToken = document.querySelector('meta[name="_csrf"]')?.content;
+                const inputToken = document.querySelector('input[name="_csrf"]')?.value;
+                return metaToken || inputToken;
+            },
+
+            getHeaders() {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                const csrfToken = this.getCsrfToken();
+                if (csrfToken) {
+                    headers['X-CSRF-TOKEN'] = csrfToken;
+                }
+
+                return headers;
+            },
+
+            async loadCart() {
+                try {
+                    this.loading = true;
+                    console.log('=== DEBUG: Loading cart ===');
+
+                    const response = await axios.get('/api/cart', {
+                        withCredentials: true,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    console.log('Cart API response:', response);
+
+                    if (response.data && Array.isArray(response.data)) {
+                        this.cartItems = response.data;
+                        this.errorMessage = '';
+                        console.log('Cart items loaded:', this.cartItems.length);
+                    } else if (response.data && response.data.error) {
+                        this.errorMessage = response.data.error;
+                        this.cartItems = [];
+                        console.error('Cart API error:', response.data.error);
+                    }
+                } catch (error) {
+                    console.error('Lỗi tải giỏ hàng:', error);
+                    console.error('Error details:', error.response);
+
+                    if (error.response?.status === 401) {
+                        this.errorMessage = 'Vui lòng đăng nhập để xem giỏ hàng';
+                        setTimeout(() => {
+                            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                        }, 1500);
+                    } else if (error.response?.data?.error) {
+                        this.errorMessage = error.response.data.error;
+                    } else {
+                        this.errorMessage = 'Lỗi tải giỏ hàng: ' + (error.message || 'Vui lòng thử lại');
+                    }
+                    this.cartItems = [];
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async updateQuantity(productId, newQuantity) {
+                console.log('=== DEBUG: Update Quantity ===');
+                console.log('Product ID:', productId);
+                console.log('New Quantity:', newQuantity);
+
+                if (newQuantity < 1) {
+                    await this.removeItem(productId);
+                    return;
+                }
+
+                const item = this.cartItems.find(item => item.product.id === productId);
+                if (item && newQuantity > item.product.stockQuantity) {
+                    this.errorMessage = `Chỉ còn ${item.product.stockQuantity} sản phẩm trong kho`;
+                    return;
+                }
+
+                this.updatingItemId = productId;
+                this.errorMessage = '';
+                this.successMessage = '';
+
+                try {
+                    console.log('Step 1: Removing old item...');
+
+                    await axios.delete(`/api/cart/remove/${productId}`, {
+                        withCredentials: true,
+                        headers: this.getHeaders()
+                    });
+
+                    console.log('Step 2: Adding with new quantity...');
+
+                    const response = await axios.post(
+                        `/api/cart/add/${productId}?quantity=${newQuantity}`,
+                        {},
+                        {
+                            withCredentials: true,
+                            headers: this.getHeaders()
+                        }
+                    );
+
+                    console.log('Update response:', response.data);
+
+                    if (response.data && response.data.success) {
+                        this.successMessage = response.data.message || 'Đã cập nhật số lượng';
+                        setTimeout(() => this.successMessage = '', 3000);
+                    } else if (response.data && response.data.error) {
+                        this.errorMessage = response.data.error;
+                    }
+
+                    await this.loadCart();
+                    this.updateCartCount();
+
+                } catch (error) {
+                    console.error('Lỗi cập nhật số lượng:', error);
+                    console.error('Error details:', error.response);
+
+                    if (error.response?.status === 401) {
+                        this.errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+                        setTimeout(() => {
+                            window.location.href = '/login?redirect=' + encodeURIComponent('/cart');
+                        }, 1500);
+                    } else if (error.response?.data?.error) {
+                        this.errorMessage = 'Lỗi: ' + error.response.data.error;
+                    } else {
+                        this.errorMessage = 'Lỗi cập nhật số lượng. Vui lòng thử lại.';
+                    }
+                } finally {
+                    this.updatingItemId = null;
+                }
+            },
+
+            async removeItem(productId) {
+                if (!confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
+
+                this.removingItemId = productId;
+                this.errorMessage = '';
+                this.successMessage = '';
+
+                try {
+                    console.log(`=== DEBUG: Removing product ${productId} ===`);
+
+                    const response = await axios.delete(`/api/cart/remove/${productId}`, {
+                        withCredentials: true,
+                        headers: this.getHeaders()
+                    });
+
+                    console.log('Remove response:', response.data);
+
+                    if (response.data && response.data.success) {
+                        this.successMessage = response.data.message || 'Đã xóa sản phẩm';
+                        setTimeout(() => this.successMessage = '', 3000);
+                    } else if (response.data && response.data.error) {
+                        this.errorMessage = response.data.error;
+                    }
+
+                    await this.loadCart();
+                    this.updateCartCount();
+
+                } catch (error) {
+                    console.error('Lỗi xóa sản phẩm:', error);
+                    console.error('Error details:', error.response);
+
+                    if (error.response?.status === 401) {
+                        this.errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+                        setTimeout(() => {
+                            window.location.href = '/login?redirect=' + encodeURIComponent('/cart');
+                        }, 1500);
+                    } else if (error.response?.data?.error) {
+                        this.errorMessage = 'Lỗi: ' + error.response.data.error;
+                    } else {
+                        this.errorMessage = 'Lỗi xóa sản phẩm. Vui lòng thử lại.';
+                    }
+                } finally {
+                    this.removingItemId = null;
+                }
+            },
+
+            async clearCart() {
+                if (!confirm('Bạn có chắc muốn xóa tất cả sản phẩm khỏi giỏ hàng?')) return;
+
+                this.clearingCart = true;
+                this.errorMessage = '';
+                this.successMessage = '';
+
+                try {
+                    console.log('=== DEBUG: Clearing entire cart ===');
+
+                    for (const item of this.cartItems) {
+                        await axios.delete(`/api/cart/remove/${item.product.id}`, {
+                            withCredentials: true,
+                            headers: this.getHeaders()
+                        });
+                    }
+
+                    this.successMessage = 'Đã xóa toàn bộ giỏ hàng';
+                    setTimeout(() => this.successMessage = '', 3000);
+
+                    await this.loadCart();
+                    this.updateCartCount();
+
+                } catch (error) {
+                    console.error('Lỗi xóa giỏ hàng:', error);
+                    console.error('Error details:', error.response);
+
+                    if (error.response?.status === 401) {
+                        this.errorMessage = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+                    } else {
+                        this.errorMessage = 'Lỗi xóa giỏ hàng. Vui lòng thử lại.';
+                    }
+                } finally {
+                    this.clearingCart = false;
+                }
+            },
+
+            async checkout() {
+                console.log('=== DEBUG: Checkout ===');
+
+                if (!this.shippingAddress.trim()) {
+                    this.addressError = 'Vui lòng nhập địa chỉ giao hàng';
+                    return;
+                }
+
+                if (this.cartItems.length === 0) {
+                    this.errorMessage = 'Giỏ hàng trống';
+                    return;
+                }
+
+                this.processing = true;
+                this.errorMessage = '';
+                this.addressError = '';
+
+                try {
+                    console.log('Shipping address:', this.shippingAddress.trim());
+                    console.log('Cart items:', this.cartItems.length);
+
+                    document.getElementById('checkout-address').value = this.shippingAddress.trim();
+
+                    document.getElementById('checkout-form').submit();
+
+
+                } catch (error) {
+                    console.error('Lỗi đặt hàng:', error);
+                    this.errorMessage = 'Lỗi đặt hàng: ' + (error.message || 'Vui lòng thử lại');
+                    this.processing = false;
+                }
+            },
+
+            updateCartCount() {
+                console.log('Dispatching cart-updated event');
+                const event = new CustomEvent('cart-updated');
+                window.dispatchEvent(event);
+            },
+
+            formatPrice(price) {
+                return new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                }).format(price);
+            },
+
+            getProductImage(product) {
+                if (!product || !product.imageUrl) {
+                    return '/images/default-product.jpg';
+                }
+
+                let imageUrl = product.imageUrl;
+                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                    imageUrl = '/' + imageUrl;
+                }
+                return imageUrl;
+            },
+
+            truncateDescription(description) {
+                if (!description) return '';
+                return description.length > 80 ? description.substring(0, 80) + '...' : description;
+            }
+        }
+    };
+
+    console.log('=== Initializing Cart App ===');
+    try {
+        createApp(CartApp).mount('#vue-cart-app');
+        console.log('Cart Vue app mounted successfully');
+    } catch (error) {
+        console.error('Error mounting Vue app:', error);
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    console.log('Cart page loaded successfully');
+
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('Testing API connectivity...');
+
+        fetch('/api/cart', {
+            credentials: 'include'
+        })
+            .then(response => {
+                console.log('Cart API status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Cart data:', data);
+            })
+            .catch(error => {
+                console.error('Cart API error:', error);
+            });
+    });
+</script>
+</body>
+</html>

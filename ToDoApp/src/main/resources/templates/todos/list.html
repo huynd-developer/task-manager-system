@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout :: layout(~{::title}, ~{::section})">
+<head>
+    <title>Todo List</title>
+</head>
+<body>
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-list-check text-primary me-2"></i>My Todos
+        </h1>
+        <a th:href="@{/todos/create}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add New Todo
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 th:text="${pendingCount}">0</h4>
+                            <p class="mb-0">Pending</p>
+                        </div>
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 th:text="${completedCount}">0</h4>
+                            <p class="mb-0">Completed</p>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 th:text="${overdueCount}">0</h4>
+                            <p class="mb-0">Overdue</p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 th:text="${#lists.size(todos)}">0</h4>
+                            <p class="mb-0">Total</p>
+                        </div>
+                        <i class="fas fa-chart-bar fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form th:action="@{/todos}" method="get" class="d-flex">
+                        <input type="text" name="search" th:value="${searchTerm}"
+                               class="form-control me-2" placeholder="Search todos...">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group float-end">
+                        <a th:href="@{/todos}"
+                           class="btn btn-outline-primary"
+                           th:classappend="${filter == null} ? 'active' : ''">
+                            All
+                        </a>
+                        <a th:href="@{/todos(filter='pending')}"
+                           class="btn btn-outline-warning"
+                           th:classappend="${filter == 'pending'} ? 'active' : ''">
+                            Pending
+                        </a>
+                        <a th:href="@{/todos(filter='completed')}"
+                           class="btn btn-outline-success"
+                           th:classappend="${filter == 'completed'} ? 'active' : ''">
+                            Completed
+                        </a>
+                        <a th:href="@{/todos(filter='overdue')}"
+                           class="btn btn-outline-danger"
+                           th:classappend="${filter == 'overdue'} ? 'active' : ''">
+                            Overdue
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Todo List -->
+    <div th:if="${#lists.isEmpty(todos)}" class="text-center py-5">
+        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No todos found</h4>
+        <p class="text-muted">Get started by creating your first todo!</p>
+        <a th:href="@{/todos/create}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Create Your First Todo
+        </a>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(todos)}" class="row">
+        <div th:each="todo : ${todos}" class="col-lg-6 mb-3">
+            <div class="card todo-card h-100"
+                 th:classappend="'priority-' + ${todo.priority?.name()?.toLowerCase()}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title" th:classappend="${todo.completed} ? 'completed' : ''">
+                                <span th:text="${todo.title}">Todo Title</span>
+                                <span th:if="${todo.priority == T(com.example.todo.model.Todo.Priority).URGENT}"
+                                      class="badge bg-danger ms-2">URGENT</span>
+                            </h5>
+                            <p class="card-text text-muted" th:text="${todo.description}">Description</p>
+
+                            <div class="mt-2">
+                                    <span class="badge"
+                                          th:classappend="{
+                                              'bg-success': ${todo.priority == T(com.example.todo.model.Todo.Priority).LOW},
+                                              'bg-warning': ${todo.priority == T(com.example.todo.model.Todo.Priority).MEDIUM},
+                                              'bg-orange': ${todo.priority == T(com.example.todo.model.Todo.Priority).HIGH},
+                                              'bg-danger': ${todo.priority == T(com.example.todo.model.Todo.Priority).URGENT}
+                                          }"
+                                          th:text="${todo.priority}">Priority</span>
+
+                                <span th:if="${todo.dueDate}" class="badge bg-secondary ms-1">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        <span th:text="${#temporals.format(todo.dueDate, 'dd/MM/yyyy HH:mm')}"></span>
+                                    </span>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                    type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a th:href="@{/todos/toggle/{id}(id=${todo.id})}"
+                                       class="dropdown-item">
+                                        <i class="fas"
+                                           th:classappend="${todo.completed} ? 'fa-undo' : 'fa-check'"></i>
+                                        <span th:text="${todo.completed} ? 'Mark as Pending' : 'Mark as Completed'"></span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a th:href="@{/todos/edit/{id}(id=${todo.id})}"
+                                       class="dropdown-item">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a th:href="@{/todos/delete/{id}(id=${todo.id})}"
+                                       class="dropdown-item text-danger"
+                                       onclick="return confirm('Are you sure you want to delete this todo?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <small class="text-muted">
+                        Created: <span th:text="${#temporals.format(todo.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
+                        <span th:if="${todo.updatedAt != todo.createdAt}">
+                                • Updated: <span th:text="${#temporals.format(todo.updatedAt, 'dd/MM/yyyy HH:mm')}"></span>
+                            </span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>
