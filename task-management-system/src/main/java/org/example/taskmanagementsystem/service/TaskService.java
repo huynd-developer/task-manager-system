@@ -42,12 +42,12 @@ public class TaskService {
         dto.setPriority(task.getPriority().name());
         dto.setCreatedAt(task.getCreatedAt());
 
-        // project có thể null
+
         if (task.getProject() != null) {
             dto.setProjectName(task.getProject().getName());
         }
 
-        // assigned user có thể null
+
         if (task.getAssignedTo() != null) {
             dto.setAssignedUser(task.getAssignedTo().getFullName());
         }
@@ -55,7 +55,7 @@ public class TaskService {
         return dto;
     }
 
-    // 1. Lấy tất cả task
+
     public List<TaskResponseDTO> getAllTasks() {
         return taskRepository.findAll()
                 .stream()
@@ -63,7 +63,7 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    // 2. Lấy task theo status
+
     public List<TaskResponseDTO> getTasksByStatus(String status) {
         TaskStatus taskStatus = TaskStatus.valueOf(status.toUpperCase());
         return taskRepository.findByStatus(taskStatus)
@@ -72,7 +72,7 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    // 3. Lấy task theo user
+
     public List<TaskResponseDTO> getTasksByUser(Long userId) {
         return taskRepository.findByAssignedTo_Id(userId)
                 .stream()
@@ -80,7 +80,7 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    // 4. Lấy task theo project
+
     public List<TaskResponseDTO> getTasksByProject(Long projectId) {
         return taskRepository.findByProject_Id(projectId)
                 .stream()
@@ -88,7 +88,7 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    // 5. Tạo task
+
     public TaskResponseDTO createTask(TaskRequestDTO dto) {
 
         Project project = projectRepository.findById(dto.getProjectId())
@@ -113,7 +113,7 @@ public class TaskService {
         return mapToDTO(saved);
     }
 
-    // 6. Cập nhật status task
+
     public TaskResponseDTO updateTaskStatus(Long taskId, String status) {
 
         Task task = taskRepository.findById(taskId)
@@ -126,7 +126,7 @@ public class TaskService {
         return mapToDTO(taskRepository.save(task));
     }
 
-    // 7. Xóa task
+
     public void deleteTask(Long id) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() ->
