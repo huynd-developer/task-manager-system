@@ -55,9 +55,6 @@ public class TaskService {
         return dto;
     }
 
-
-    /* ===================== SERVICES ===================== */
-
     // 1. Lấy tất cả task
     public List<TaskResponseDTO> getAllTasks() {
         return taskRepository.findAll()
