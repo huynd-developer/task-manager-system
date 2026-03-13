@@ -31,7 +31,7 @@ public class TaskServiceTest {
     @Test
     void createTask_ThrowsException_WhenUserNotInProject() {
         Project project = new Project();
-        project.setMembers(new ArrayList<>()); // Project không có thành viên
+        project.setMembers(new ArrayList<>());
         User user = new User();
         user.setId(99L);
 
@@ -55,40 +55,34 @@ public class TaskServiceTest {
     }
     @Test
     void createTask_Success_HappyPath() {
-        // 1. Chuẩn bị dữ liệu giả
         Project project = new Project();
         project.setId(1L);
         User user = new User();
         user.setId(2L);
-        project.setMembers(java.util.List.of(user)); // Add user vào project để qua ải Validate
+        project.setMembers(java.util.List.of(user));
 
-        // Giả lập Repository trả về dữ liệu
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 
         when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
             Task savedTask = invocation.getArgument(0);
-            savedTask.setId(100L); // Giả lập DB cấp ID
+            savedTask.setId(100L);
             return savedTask;
         });
 
-        // 2. Thực thi Service
         TaskRequestDTO dto = new TaskRequestDTO();
         dto.setTitle("Học Mockito");
         dto.setStatus(TaskStatus.TODO);
         dto.setPriority(org.example.taskmanagementsystem.entity.enums.Priority.HIGH);
         dto.setProjectId(1L);
         dto.setAssignedTo(2L);
-        dto.setDueDate(java.time.LocalDate.now().plusDays(5)); // Deadline hợp lệ
+        dto.setDueDate(java.time.LocalDate.now().plusDays(5));
 
         var result = taskService.createTask(dto);
 
-        // 3. Assert (Kiểm tra kết quả)
         org.junit.jupiter.api.Assertions.assertNotNull(result);
         org.junit.jupiter.api.Assertions.assertEquals("Học Mockito", result.getTitle());
 
-        // 4. VERIFY BEHAVIOR (ĐIỂM 10 CỦA TUẦN 8 CHÍNH LÀ DÒNG NÀY)
-        // Chứng minh rằng hàm save() của taskRepository đã được gọi chính xác 1 lần
         org.mockito.Mockito.verify(taskRepository, org.mockito.Mockito.times(1)).save(any(Task.class));
     }
 }

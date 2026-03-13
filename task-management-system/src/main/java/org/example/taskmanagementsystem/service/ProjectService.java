@@ -40,7 +40,6 @@ public class ProjectService {
         project.setName(dto.getName());
         project.setDescription(dto.getDescription());
 
-        // 1. Xử lý Enum an toàn để tránh lỗi 500
         try {
             project.setStatus(ProjectStatus.valueOf(dto.getStatus().toUpperCase()));
         } catch (Exception e) {
@@ -52,7 +51,6 @@ public class ProjectService {
             project.setMembers(members);
         }
 
-        // 2. KHÔNG setCreatedAt/UpdatedAt ở đây. JPA Auditing sẽ tự điền.
         Project saved = projectRepository.save(project);
         ProjectResponseDTO response = new ProjectResponseDTO();
         response.setId(saved.getId());

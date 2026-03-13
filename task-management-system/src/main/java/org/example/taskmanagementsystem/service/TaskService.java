@@ -41,9 +41,8 @@ public class TaskService {
         dto.setTitle(task.getTitle());
         dto.setStatus(task.getStatus().name());
         dto.setPriority(task.getPriority().name());
-        dto.setCreatedAt(task.getCreatedAt()); // Sẽ tự động có giá trị từ BaseEntity
+        dto.setCreatedAt(task.getCreatedAt());
 
-        // Cập nhật: Thêm dueDate vào DTO trả về
         dto.setDueDate(task.getDueDate());
 
         if (task.getProject() != null) {
@@ -56,7 +55,6 @@ public class TaskService {
         return dto;
     }
 
-    /* ===================== SERVICES ===================== */
 
     public Page<TaskResponseDTO> getAllTasks(Pageable pageable) {
         return taskRepository.findAll(pageable)
@@ -97,7 +95,6 @@ public class TaskService {
         User user = userRepository.findById(dto.getAssignedTo())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Kiểm tra User có thuộc Project không
         boolean isMember = project.getMembers().contains(user);
         if (!isMember) {
             throw new IllegalArgumentException("User không thuộc dự án này, không thể giao việc!");
@@ -111,11 +108,8 @@ public class TaskService {
         task.setProject(project);
         task.setAssignedTo(user);
 
-        // Cập nhật: Map dueDate từ RequestDTO sang Entity
         task.setDueDate(dto.getDueDate());
 
-        // --- ĐÃ XÓA setCreatedAt và setUpdatedAt thủ công ---
-        // JPA Auditing (@CreatedDate) sẽ tự điền khi gọi save()
 
         Task saved = taskRepository.save(task);
         return mapToDTO(saved);
@@ -140,8 +134,6 @@ public class TaskService {
             throw new IllegalArgumentException("Trạng thái '" + status + "' không hợp lệ!");
         }
 
-        // --- ĐÃ XÓA setUpdatedAt thủ công ---
-        // JPA Auditing (@LastModifiedDate) sẽ tự cập nhật khi save()
 
         return mapToDTO(taskRepository.save(task));
     }
@@ -153,7 +145,6 @@ public class TaskService {
         }
         taskRepository.deleteById(id);
     }
-    // Thêm hàm lấy danh sách Task dựa vào username (Lấy từ Token)
     public List<TaskResponseDTO> getTasksByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy User"));
