@@ -2,7 +2,7 @@ package org.example.taskmanagementsystem.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
 @Data
 public class TaskResponseDTO {
     private Long id;
@@ -12,4 +12,5 @@ public class TaskResponseDTO {
     private String projectName;
     private String assignedUser;
     private LocalDateTime createdAt;
+    private LocalDate dueDate;
 }

@@ -1,20 +1,16 @@
 package org.example.taskmanagementsystem.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.example.taskmanagementsystem.entity.enums.UserRole;
-
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.taskmanagementsystem.entity.enums.UserRole;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
-public class User {
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,6 +23,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    @ManyToMany(mappedBy = "members")
+    private List<Project> projects;
+
+
 }

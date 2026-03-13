@@ -7,13 +7,13 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 public class ErrorResponse {
-    private LocalDateTime timestamp;
-    private String message;
     private int status;
+    private String message;
+    private LocalDateTime timestamp;
 
-    public ErrorResponse(String message, int status) {
-        this.timestamp = LocalDateTime.now();
-        this.message = message;
+    public ErrorResponse(int status, String message) {
         this.status = status;
+        this.message = message;
+        this.timestamp = LocalDateTime.now();
     }
 }

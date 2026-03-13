@@ -5,7 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.example.taskmanagementsystem.entity.enums.Priority;
 import org.example.taskmanagementsystem.entity.enums.TaskStatus;
-
+import jakarta.validation.constraints.FutureOrPresent;
+import java.time.LocalDate;
 @Data
 public class TaskRequestDTO {
 
@@ -25,4 +26,8 @@ public class TaskRequestDTO {
 
     @NotNull
     private Long assignedTo;
+
+    @NotNull(message = "Deadline không được để trống")
+    @FutureOrPresent(message = "Deadline phải lớn hơn hoặc bằng ngày hiện tại")
+    private LocalDate dueDate;
 }

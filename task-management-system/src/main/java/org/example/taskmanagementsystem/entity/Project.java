@@ -2,9 +2,8 @@ package org.example.taskmanagementsystem.entity;
 
 import jakarta.persistence.*;
 import org.example.taskmanagementsystem.entity.enums.ProjectStatus;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,7 +11,8 @@ import lombok.Setter;
 @Table(name = "projects")
 @Getter
 @Setter
-public class Project {
+public class Project extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +28,13 @@ public class Project {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-}
 
+
+    @ManyToMany
+    @JoinTable(
+            name = "project_members",
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> members;
+}

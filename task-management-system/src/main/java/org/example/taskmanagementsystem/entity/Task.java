@@ -6,13 +6,13 @@ import lombok.Setter;
 import org.example.taskmanagementsystem.entity.enums.Priority;
 import org.example.taskmanagementsystem.entity.enums.TaskStatus;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "tasks")
 @Getter
 @Setter
-public class Task {
+public class Task extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,10 +39,6 @@ public class Task {
     @JoinColumn(name = "assigned_to", nullable = false)
     private User assignedTo;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "due_date", nullable = false)
+    private LocalDate dueDate;
 }
-
