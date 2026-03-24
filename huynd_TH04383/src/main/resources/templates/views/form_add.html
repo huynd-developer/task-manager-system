@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h3>Form add</h3>
+<form th:action="@{/sach/addSach}" th:object="${sach}" method="post">
+    <label for="maSach">Mã sách</label>
+    <input type="text" th:field="*{maSach}" id="maSach"><br>
+    <p th:if="${#fields.hasErrors('maSach')}" th:errors="*{maSach}" style="color: red"></p><br>
+
+    <label for="tenSach">Tên sách</label>
+    <input type="text" th:field="*{tenSach}" id="tenSach"><br>
+    <p th:if="${#fields.hasErrors('tenSach')}" th:errors="*{tenSach}" style="color: red"></p><br>
+
+    <label for="theLoai">Thể loại</label>
+    <input type="text" th:field="*{theLoai}" id="theLoai"><br>
+    <p th:if="${#fields.hasErrors('theLoai')}" th:errors="*{theLoai}" style="color: red"></p><br>
+
+    <label for="gia">Giá</label>
+    <input type="number" th:field="*{gia}" id="gia"><br>
+    <p th:if="${#fields.hasErrors('gia')}" th:errors="*{gia}" style="color: red"></p><br>
+
+    <div>
+        <label for="tacGia">Tác giả</label>
+        <select th:field="*{tacGia}" id="tacGia">
+                <option value="">---Vui lòng chọn---</option>
+            <option th:each="tg: ${tacGia}" th:value="${tg.id}" th:text="${tg.tenTacGia}"></option>
+        </select>
+    </div>
+    <p th:if="${#fields.hasErrors('tacGia')}" th:errors="*{tacGia}" style="color: red"></p><br>
+    <button type="submit">Add</button>
+</form>
+</body>
+</html>

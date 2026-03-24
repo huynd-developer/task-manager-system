@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Cart</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+</head>
+<body>
+<div class="container mt-5">
+    <h1>Your Cart</h1>
+    <table class="table table-bordered table-hover mt-3">
+        <thead class="thead-dark">
+        <tr>
+            <th>Sneaker</th>
+            <th>Brand</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${cartItems}">
+            <td th:text="${c.sneaker.name}"></td>
+            <td th:text="${c.sneaker.brand}"></td>
+            <td th:text="${c.quantity}"></td>
+            <td th:text="${#numbers.formatDecimal(c.sneaker.price * c.quantity, 1, 'POINT', 2, 'COMMA')}"></td>
+            <td>
+                <form th:action="@{/cart/remove/{id}(id=${c.id})}" method="post">
+                    <button class="btn btn-danger btn-sm" type="submit">Remove</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <a th:href="@{/cart/checkout}" class="btn btn-success">Checkout</a>
+    <a th:href="@{/sneakers}" class="btn btn-primary">Continue Shopping</a>
+</div>
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

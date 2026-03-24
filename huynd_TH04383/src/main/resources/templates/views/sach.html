@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h3>Form sách</h3>
+<form th:action="@{/sach}">
+    <input type="text" th:value="${keyword}" name="keyword" placeholder="Tìm kiếm tên">
+    <button type="submit">Search</button>
+</form>
+<a th:href="@{/sach/formAdd}">
+    <button>Add</button></a>
+<table border="1">
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Mã sách</th>
+        <th>Tên sách</th>
+        <th>Thể loại</th>
+        <th>Giá</th>
+        <th>Tên tác giả</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="s: ${sach}">
+        <td th:text="*{s.id}"></td>
+        <td th:text="*{s.maSach}"></td>
+        <td th:text="*{s.tenSach}"></td>
+        <td th:text="*{s.theLoai}"></td>
+        <td th:text="*{s.gia}"></td>
+        <td th:text="*{s.tacGia.tenTacGia}"></td>
+        <td>
+            <a th:href="@{/sach/formUpdate/{id}(id=${s.id})}">
+                <button>Update</button></a>
+            <a th:href="@{/sach/deleteSach/{id}(id=${s.id})}">
+                <button>Delete</button></a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+<form th:action="@{/sach}" method="get">
+    <input type="hidden" name="keyword" th:value="${keyword}">
+    <button type="submit" name="page" th:value="${currentPage - 1}" th:if="${currentPage > 0}">Previous</button>
+
+    <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+        <button type="submit" name="page" th:value="${i}"
+                th:text="${i + 1}"
+                th:classappend="${i == currentPage} ? 'current' : ''"></button>
+    </span>
+
+    <button type="submit" name="page" th:value="${currentPage + 1}" th:if="${currentPage < totalPages - 1}">Next</button>
+</form>
+</body>
+</html>

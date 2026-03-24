@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link th:href="@{/css/fixed-header.css}" rel="stylesheet">
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        body {
+            padding-top: 80px !important;
+            margin: 0 !important;
+        }
+
+        .navbar.fixed-top {
+            position: fixed !important;
+            top: 0 !important;
+            width: 100% !important;
+            z-index: 1030;
+            background-color: #343a40;
+        }
+
+        .container, .container-fluid {
+            margin-top: 0 !important;
+            padding-top: 20px !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-top: 70px !important;
+            }
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(50%, -50%);
+            font-size: 12px;
+            min-width: 20px;
+            height: 20px;
+            line-height: 20px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" th:fragment="header">
+    <div class="container">
+        <a class="navbar-brand" href="/">🛍️ SHOP APP</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Trang chủ</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/products">Sản phẩm</a>
+                </li>
+
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link position-relative" href="/cart">
+                        Giỏ hàng
+                        <span sec:authorize="isAuthenticated()"
+                              th:if="${#authentication.principal != null}"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-badge"
+                              th:text="${@cartService.getCartCount(#authentication.principal.username)}">
+                                0
+                            </span>
+                    </a>
+                </li>
+
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link" href="/orders">Đơn hàng</a>
+                </li>
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link" href="/profile">Hồ sơ</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link" href="/admin">Quản trị</a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav ms-auto">
+                <div sec:authorize="!isAuthenticated()" class="d-flex">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Đăng nhập</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">Đăng ký</a>
+                    </li>
+                </div>
+
+                <div sec:authorize="isAuthenticated()" class="d-flex align-items-center">
+                    <li class="nav-item">
+                            <span class="nav-link mb-0">
+                                Xin chào, <span sec:authentication="name"></span>
+                            </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                            <button type="submit"
+                                    class="btn btn-link nav-link p-0 m-0 border-0 bg-transparent text-light">
+                                (Đăng xuất)
+                            </button>
+                        </form>
+                    </li>
+                </div>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div id="vue-cart-link"></div>
+
+<script>
+    const {createApp} = Vue;
+
+    const CartLinkComponent = {
+        template: `
+          <a class="nav-link position-relative" href="/cart">
+            🛒 Giỏ hàng
+            <span v-if="cartCount > 0"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-badge">
+                        {{ cartCount }}
+                    </span>
+          </a>
+        `,
+
+        data() {
+            return {
+                cartCount: 0
+            };
+        },
+
+        mounted() {
+            this.loadCartCount();
+            window.addEventListener('cart-updated', this.loadCartCount);
+            setInterval(this.loadCartCount, 30000);
+        },
+
+        beforeUnmount() {
+            window.removeEventListener('cart-updated', this.loadCartCount);
+        },
+
+        methods: {
+            async loadCartCount() {
+                try {
+                    const response = await axios.get('/api/cart', {
+                        withCredentials: true
+                    });
+                    this.cartCount = response.data.length;
+                } catch (error) {
+                    this.cartCount = 0;
+                }
+            }
+        }
+    };
+
+    if (document.getElementById('vue-cart-link')) {
+        createApp(CartLinkComponent).mount('#vue-cart-link');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        window.addEventListener('cart-updated', function (event) {
+            const badge = document.querySelector('.cart-badge');
+            if (badge && event.detail && event.detail.count !== undefined) {
+                badge.textContent = event.detail.count;
+            }
+        });
+
+        loadCartCount();
+    });
+
+    async function loadCartCount() {
+        try {
+            const response = await fetch('/api/cart', {
+                credentials: 'include'
+            });
+            if (response.ok) {
+                const cartItems = await response.json();
+                const count = cartItems.reduce((total, item) => total + item.quantity, 0);
+                const badge = document.querySelector('.cart-badge');
+                if (badge) {
+                    badge.textContent = count;
+                }
+            }
+        } catch (error) {
+            console.error('Lỗi tải cart count:', error);
+        }
+    }
+</script>
+</body>
+</html>

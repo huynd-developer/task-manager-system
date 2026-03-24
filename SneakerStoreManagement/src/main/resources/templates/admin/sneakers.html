@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>All Sneakers</h1>
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Brand</th>
+        <th>Action</th>
+    </tr>
+    <tr th:each="s : ${sneakers}">
+        <td th:text="${s.name}"></td>
+        <td th:text="${s.brand}"></td>
+        <td>
+            <a th:href="@{/admin/sneakers/delete/{id}(id=${s.id})}">Delete</a>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
