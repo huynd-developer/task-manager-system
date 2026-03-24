@@ -39,6 +39,6 @@ public class Task extends BaseEntity {
     @JoinColumn(name = "assigned_to", nullable = false)
     private User assignedTo;
 
-    @Column(name = "due_date", nullable = false)
+    @Column(name = "deadline", nullable = false)
     private LocalDate dueDate;
 }
